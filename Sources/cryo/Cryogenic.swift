@@ -7,6 +7,7 @@
 
 import Foundation
 
+import CLISpinner
 import Gardener
 
 public class Cryogenic
@@ -31,55 +32,39 @@ public class Cryogenic
 
     public func initialize() throws
     {
-        guard let _ = self.git.checkout(self.config.branch) else
+        let _ = SpinnerBlock(start: "Checking out \(self.config.branch) branch...", success: "Checked out \(self.config.branch).", fail: "Checkout failed!")
         {
-            throw CryogenicError.checkoutFailed
+            try self.git.checkout(self.config.branch)
         }
 
-        guard let _ = self.git.pull(self.config.remoteName, self.config.branch) else
+        let _ = SpinnerBlock(start: "Pulling from upstream \(self.config.remoteName)/\(self.config.branch)...", success: "Pulled from upstream \(self.config.remoteName)/\(self.config.branch).", fail: "Git pull failed!")
         {
-            throw CryogenicError.pullFailed
+            try self.git.pull(self.config.remoteName, self.config.branch)
         }
     }
 
     public func build() throws
     {
-        guard let _ = self.git.checkout(self.config.branch) else
+        try self.initialize()
+
+        let _ = SpinnerBlock(start: "Updating depedencies...", success: "Updated dependencies.", fail: "Swift package update failed!")
         {
-            throw CryogenicError.checkoutFailed
+            try self.swift.update()
         }
 
-        guard let _ = self.git.pull(self.config.remoteName, self.config.branch) else
+        let _ = SpinnerBlock(start: "Building...", success: "Build succeeded.", fail: "Swift build failed!")
         {
-            throw CryogenicError.pullFailed
-        }
-
-        guard let _ = self.swift.update() else
-        {
-            throw CryogenicError.updateFailed
-        }
-
-        guard let _ = self.swift.build() else
-        {
-            throw CryogenicError.buildFailed
+            try self.swift.build()
         }
     }
 
     public func run() throws
     {
-        guard let _ = self.git.checkout(self.config.branch) else
-        {
-            throw CryogenicError.checkoutFailed
-        }
+        try self.build()
 
-        guard let _ = self.git.pull(self.config.remoteName, self.config.branch) else
+        let _ = SpinnerBlock(start: "Running \(self.config.target ?? "")...", success: "Run succeeded.", fail: "Run failed!")
         {
-            throw CryogenicError.pullFailed
-        }
-
-        guard let _ = self.swift.build() else
-        {
-            throw CryogenicError.buildFailed
+            try self.swift.run()
         }
     }
 }
