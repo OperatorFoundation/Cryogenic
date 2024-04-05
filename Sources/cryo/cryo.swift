@@ -16,45 +16,62 @@ struct cryo: ParsableCommand
     static let configuration = CommandConfiguration(
         commandName: "cryo",
         abstract: "cryo is a tool for keeping your packages fresh",
-        subcommands: [setRoot.self, setTemp.self, addProject.self]
+        subcommands: [initialize.self, build.self, show.self]
     )
 }
 
 extension cryo
 {
-    struct setRoot: ParsableCommand
+    struct initialize: ParsableCommand
     {
-        @Argument(help: "path to projects root directory")
-        var root: String
+        @Argument(help: "git remote name to use for pulls")
+        var remote: String
+
+        @Argument(help: "git branch to check out")
+        var branch: String
+
+        @Argument(help: "executable to run")
+        var target: String?
+
+        @Argument(help: "arguments to pass to the executable")
+        var arguments: String?
 
         @Option(help: "path to config file")
         var configFile: String?
 
         mutating public func run() throws
         {
-            let config = try loadConfig(configFile: configFile)
-
-            guard File.exists(root) else
+            let config: CryoConfig
+            if let maybeConfig = try? loadConfig(configFile: configFile)
             {
-                throw cryoError.pathNotFound(root)
+                config = maybeConfig
+
+                config.remoteName = remote
+                config.branch = branch
+                config.target = target
+                config.arguments = arguments
+            }
+            else
+            {
+                config = CryoConfig(remoteName: remote, branch: branch, target: target, arguments: arguments)
             }
 
-            let url = URL(fileURLWithPath: root)
-
-            config.projectRoot = url
-
             try saveConfig(config: config, configFile: configFile)
+
+            guard let cryo = Cryogenic(config) else
+            {
+                throw cryoError.couldNotInstantiateCryogenic
+            }
+
+            try cryo.initialize()
         }
     }
 }
 
 extension cryo
 {
-    struct setTemp: ParsableCommand
+    struct build: ParsableCommand
     {
-        @Argument(help: "path to checkouts temporary directory")
-        var temp: String
-
         @Option(help: "path to config file")
         var configFile: String?
 
@@ -62,33 +79,20 @@ extension cryo
         {
             let config = try loadConfig(configFile: configFile)
 
-            if !File.exists(temp)
+            guard let cryo = Cryogenic(config) else
             {
-                guard File.makeDirectory(atPath: temp) else
-                {
-                    throw cryoError.couldNotCreateTempDirectory(temp)
-                }
+                throw cryoError.couldNotInstantiateCryogenic
             }
 
-            let url = URL(fileURLWithPath: temp)
-
-            config.tempWorkingRoot = url
-
-            try saveConfig(config: config, configFile: configFile)
+            try cryo.build()
         }
     }
 }
 
 extension cryo
 {
-    struct addProject: ParsableCommand
+    struct run: ParsableCommand
     {
-        @Argument(help: "URL to project repository")
-        var gitURL: String
-
-        @Argument(help: "branch mode parameter")
-        var branchMode: BranchMode
-
         @Option(help: "path to config file")
         var configFile: String?
 
@@ -96,54 +100,64 @@ extension cryo
         {
             let config = try loadConfig(configFile: configFile)
 
-            guard let url = URL(string: gitURL) else
+            guard let cryo = Cryogenic(config) else
             {
-                throw cryoError.badURL(gitURL)
+                throw cryoError.couldNotInstantiateCryogenic
             }
 
-            for project in config.projects
-            {
-                if project.gitRepo == url
-                {
-                    throw cryoError.badURL(gitURL)
-                }
-            }
-
-            let project = Project(gitRepo: url, branchMode: branchMode)
-            config.projects.append(project)
-
-            try saveConfig(config: config, configFile: configFile)
+            try cryo.run()
         }
     }
 }
 
+extension cryo
+{
+    struct show: ParsableCommand
+    {
+        @Option(help: "path to config file")
+        var configFile: String?
+
+        mutating public func run() throws
+        {
+            let config = try loadConfig(configFile: configFile)
+
+            print(config)
+        }
+    }
+}
 
 func getConfigURL(configFile: String?) throws -> URL
 {
-    let configUrl: URL
     if let configFile
     {
         return URL(fileURLWithPath: configFile)
     }
     else
     {
-        configUrl = File.homeDirectory().appendingPathComponent(".config").appendingPathComponent("cryo").appendingPathComponent("config.json")
-        if !File.exists(configUrl.path)
+        let configFolderUrl = File.homeDirectory().appendingPathComponent(".config").appendingPathComponent("cryo")
+        if !File.exists(configFolderUrl.path)
         {
-            guard File.makeDirectory(url: configUrl) else
+            guard File.makeDirectory(url: configFolderUrl) else
             {
                 throw cryoError.couldNotCreateConfigFile
             }
         }
 
-        return configUrl
+        return configFolderUrl.appendingPathComponent("config.json")
     }
 }
 
 func loadConfig(configFile: String?) throws -> CryoConfig
 {
-    let configUrl = try getConfigURL(configFile: configFile)
-    return try CryoConfig.load(configUrl)
+    do
+    {
+        let configUrl = try getConfigURL(configFile: configFile)
+        return try CryoConfig.load(configUrl)
+    }
+    catch
+    {
+        return CryoConfig(remoteName: "origin", branch: "main", target: nil, arguments: nil)
+    }
 }
 
 func saveConfig(config: CryoConfig, configFile: String?) throws
@@ -154,7 +168,9 @@ func saveConfig(config: CryoConfig, configFile: String?) throws
 
 public enum cryoError: Error
 {
+    case couldNotInstantiateCryogenic
     case couldNotCreateTempDirectory(String)
+    case couldNotCreateProjectDirectory(String)
     case couldNotCreateConfigFile
     case pathNotFound(String)
     case badURL(String)

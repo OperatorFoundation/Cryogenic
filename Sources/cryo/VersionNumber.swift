@@ -16,6 +16,18 @@ public struct VersionNumber: Codable
     public let patch: UInt
     public let tag: String?
 
+    public var string: String
+    {
+        if let tag
+        {
+            return "\(self.major).\(self.minor).\(self.patch)\(tag)"
+        }
+        else
+        {
+            return "\(self.major).\(self.minor).\(self.patch)"
+        }
+    }
+
     public init(major: UInt, minor: UInt, patch: UInt, tag: String? = nil)
     {
         self.major = major

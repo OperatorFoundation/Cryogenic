@@ -7,17 +7,40 @@
 
 import Foundation
 
+import Datable
+
 public class CryoConfig: Codable
 {
-    public var projectRoot: URL
-    public var tempWorkingRoot: URL
-    public var projects: [Project]
+    public var remoteName: String
+    public var branch: String
+    public var target: String?
+    public var arguments: String?
 
-    public init(projectRoot: URL, tempWorkingRoot: URL, projects: [Project] = [])
+    public init(remoteName: String, branch: String, target: String? = nil, arguments: String? = nil)
     {
-        self.projectRoot = projectRoot
-        self.tempWorkingRoot = tempWorkingRoot
-        self.projects = projects
+        self.remoteName = remoteName
+        self.branch = branch
+        self.target = target
+        self.arguments = arguments
+    }
+}
+
+extension CryoConfig: CustomStringConvertible
+{
+    public var description: String
+    {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+
+        do
+        {
+            let data = try encoder.encode(self)
+            return data.string
+        }
+        catch
+        {
+            return "[CryoConfig: Unknown]"
+        }
     }
 }
 
@@ -39,8 +62,3 @@ extension CryoConfig
     }
 }
 
-public struct Project: Codable
-{
-    public let gitRepo: URL
-    public let branchMode: BranchMode
-}
