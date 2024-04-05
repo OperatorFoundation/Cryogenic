@@ -134,7 +134,7 @@ func getConfigURL(configFile: String?) throws -> URL
     }
     else
     {
-        let configFolderUrl = File.homeDirectory().appendingPathComponent(".config").appendingPathComponent("cryo")
+        let configFolderUrl = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent(".config").appendingPathComponent("cryo")
         if !File.exists(configFolderUrl.path)
         {
             guard File.makeDirectory(url: configFolderUrl) else
