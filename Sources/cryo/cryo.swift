@@ -134,16 +134,7 @@ func getConfigURL(configFile: String?) throws -> URL
     }
     else
     {
-        let configFolderUrl = URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent(".config").appendingPathComponent("cryo")
-        if !File.exists(configFolderUrl.path)
-        {
-            guard File.makeDirectory(url: configFolderUrl) else
-            {
-                throw cryoError.couldNotCreateConfigFile
-            }
-        }
-
-        return configFolderUrl.appendingPathComponent("config.json")
+        return URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("config.json")
     }
 }
 
