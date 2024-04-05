@@ -134,7 +134,7 @@ func getConfigURL(configFile: String?) throws -> URL
     }
     else
     {
-        return URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("config.json")
+        return URL(fileURLWithPath: File.currentDirectory()).appendingPathComponent("cryogenic.config")
     }
 }
 
