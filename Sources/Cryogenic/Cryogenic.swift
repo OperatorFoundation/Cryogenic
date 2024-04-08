@@ -9,6 +9,7 @@ import Foundation
 
 import CLISpinner
 import Gardener
+import Stencil
 
 public class Cryogenic
 {
@@ -64,7 +65,34 @@ public class Cryogenic
 
         let _ = SpinnerBlock(start: "Running \(self.config.target ?? "")...", success: "Run succeeded.", fail: "Run failed!")
         {
-            try self.swift.run()
+            try self.swift.run(self.config.target, arguments: self.config.arguments)
+        }
+    }
+
+    public func install() throws
+    {
+        try self.build()
+
+        let _ = SpinnerBlock(start: "Installing systemd script to run \(self.config.target ?? "")...", success: "Install succeeded.", fail: "Install failed!")
+        {
+            let target: String
+            if let maybeTarget = self.config.target
+            {
+                target = maybeTarget
+            }
+            else
+            {
+                target = URL(fileURLWithPath: File.currentDirectory()).lastPathComponent
+            }
+
+            let destination = URL(fileURLWithPath: "/etc/systemd/system/\(target).service")
+
+            let context = ["name": target, "path": File.currentDirectory()]
+            let loader = TemplateLoader()
+            let environment = Environment(loader: loader)
+            let rendered = try environment.renderTemplate(name: "systemd", context: context)
+
+            try rendered.write(to: destination, atomically: true, encoding: .utf8)
         }
     }
 }

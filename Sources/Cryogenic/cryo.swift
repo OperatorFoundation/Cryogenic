@@ -16,7 +16,7 @@ struct cryo: ParsableCommand
     static let configuration = CommandConfiguration(
         commandName: "cryo",
         abstract: "cryo is a tool for keeping your packages fresh",
-        subcommands: [initialize.self, build.self, show.self]
+        subcommands: [initialize.self, build.self, run.self, show.self, install.self]
     )
 }
 
@@ -34,7 +34,7 @@ extension cryo
         var target: String?
 
         @Argument(help: "arguments to pass to the executable")
-        var arguments: String?
+        var arguments: [String]
 
         @Option(help: "path to config file")
         var configFile: String?
@@ -126,6 +126,27 @@ extension cryo
     }
 }
 
+extension cryo
+{
+    struct install: ParsableCommand
+    {
+        @Option(help: "path to config file")
+        var configFile: String?
+
+        mutating public func run() throws
+        {
+            let config = try loadConfig(configFile: configFile)
+
+            guard let cryo = Cryogenic(config) else
+            {
+                throw cryoError.couldNotInstantiateCryogenic
+            }
+
+            try cryo.install()
+        }
+    }
+}
+
 func getConfigURL(configFile: String?) throws -> URL
 {
     if let configFile
@@ -147,7 +168,7 @@ func loadConfig(configFile: String?) throws -> CryoConfig
     }
     catch
     {
-        return CryoConfig(remoteName: "origin", branch: "main", target: nil, arguments: nil)
+        return CryoConfig(remoteName: "origin", branch: "main", target: nil, arguments: [])
     }
 }
 

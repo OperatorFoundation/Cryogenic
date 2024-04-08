@@ -17,6 +17,7 @@ let package = Package(
         .package(url: "https://github.com/kiliankoe/CLISpinner", from: "0.4.0"),
         .package(url: "https://github.com/OperatorFoundation/Datable", branch: "main"),
         .package(url: "https://github.com/OperatorFoundation/Gardener", branch: "main"),
+        .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.15.1"),
         .package(url: "https://github.com/OperatorFoundation/Text", branch: "main"),
     ],
     targets: [
@@ -30,7 +31,11 @@ let package = Package(
                 "CLISpinner",
                 "Datable",
                 "Gardener",
+                "Stencil",
                 "Text",
+            ],
+            resources: [
+                .copy("Resources")
             ]
         ),
     ],

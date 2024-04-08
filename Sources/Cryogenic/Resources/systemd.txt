@@ -1,0 +1,15 @@
+# {{name}}.service
+
+[Unit]
+Description = {{name}} server
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+WorkingDirectory={{path}}
+Restart=on-failure
+RestartSec=5s
+ExecStart=cryo run
+
+[Install]
+WantedBy = multi-user.target

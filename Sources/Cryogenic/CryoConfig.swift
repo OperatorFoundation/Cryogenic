@@ -14,9 +14,9 @@ public class CryoConfig: Codable
     public var remoteName: String
     public var branch: String
     public var target: String?
-    public var arguments: String?
+    public var arguments: [String]
 
-    public init(remoteName: String, branch: String, target: String? = nil, arguments: String? = nil)
+    public init(remoteName: String, branch: String, target: String? = nil, arguments: [String] = [])
     {
         self.remoteName = remoteName
         self.branch = branch
